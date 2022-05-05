@@ -6,91 +6,113 @@ using System.Threading.Tasks;
 
 namespace IrcGirl
 {
-    public class IrcStream : IDisposable
-    {
-        private Stream _stream;
-        private StreamReader _reader;
-        private StreamWriter _writer;
+	public class IrcStream : IDisposable
+	{
+		private Stream _stream;
+		private StreamReader _reader;
+		private StreamWriter _writer;
+		private IrcMessageLexer _lexer;
 
-        private const byte CR = (byte)'\r';
-        private const byte LF = (byte)'\n';
+		public IrcStream(Stream innerStream)
+		{
+			_stream = innerStream;
+			_reader = new StreamReader(innerStream);
+			_writer = new StreamWriter(innerStream);
+			_writer.NewLine = "\r\n";
+			_lexer = new IrcMessageLexer();
+		}
 
-        public IrcStream(Stream innerStream)
-        {
-            _stream = innerStream;
-            _reader = new StreamReader(innerStream);
-            _writer = new StreamWriter(innerStream);
-            _writer.NewLine = "\r\n";
-        }
+		/// <summary>
+		/// Read the oldest (as in, earliest received) IrcMessage from the network.
+		/// </summary>
+		/// 
+		/// <returns>
+		/// An IrcMessage if available or null if the input stream is dead.
+		/// </returns>
+		public async Task<IrcMessage> ReadAsync()
+		{
+			string line;
 
-        /// <summary>
-        /// Read the oldest (as in, earliest received) IrcMessage from the network.
-        /// </summary>
-        /// 
-        /// <returns>
-        /// An IrcMessage if available or null if the input stream is dead.
-        /// </returns>
-        public async Task<IrcMessage> ReadAsync()
-        {
-            string line = await _reader.ReadLineAsync();
+			do
+			{
+				line = await _reader.ReadLineAsync();
 
-            if (line == null)
-                return null;
+				if (line == null)
+					return null;
+			}
+			while (line.Length == 0);
 
-            return IrcMessage.Parse(line);
-        }
+			return _lexer.Lex(line);
+		}
 
-        public async Task WriteAsync(IrcMessage message)
-        {
-            if (message == null)
-                throw new ArgumentNullException(nameof(message));
+		public async Task WriteAsync(IrcMessage message)
+		{
+			if (message == null)
+				throw new ArgumentNullException(nameof(message));
 
-            await message.WriteTo(_writer);
-            await _writer.WriteLineAsync();
-            await _writer.FlushAsync();
-        }
+			await _writer.WriteAsync(message.ToString());
+			await _writer.WriteLineAsync();
+			await _writer.FlushAsync();
+		}
 
-        #region IDisposable
+		public Task WriteAsync(string message)
+		{
+			IrcMessageLexer lex = new IrcMessageLexer();
+			IrcMessage ircMessage = lex.Lex(message);
 
-        private bool disposedValue;
+			if (ircMessage == null)
+				throw new Exception("Invalid IRC message");
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    _stream?.Dispose();
-                    _reader?.Dispose();
-                    _writer?.Dispose();
+			return WriteAsync(ircMessage);
+		}
 
-                    _stream = null;
-                    _reader = null;
-                    _writer = null;
+		public async Task WriteRawAsync(string message)
+		{
+			await _writer.WriteLineAsync(message);
+			await _writer.FlushAsync();
+		}
 
-                    // TODO: dispose managed state (managed objects)
-                }
+		#region IDisposable
 
-                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-                // TODO: set large fields to null
-                disposedValue = true;
-            }
-        }
+		private bool disposedValue;
 
-        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        // ~IrcStream()
-        // {
-        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        //     Dispose(disposing: false);
-        // }
+		protected virtual void Dispose(bool disposing)
+		{
+			if (!disposedValue)
+			{
+				if (disposing)
+				{
+					_stream?.Dispose();
+					_reader?.Dispose();
+					_writer?.Dispose();
 
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-        }
+					_stream = null;
+					_reader = null;
+					_writer = null;
 
-        #endregion IDisposable
-    }
+					// TODO: dispose managed state (managed objects)
+				}
+
+				// TODO: free unmanaged resources (unmanaged objects) and override finalizer
+				// TODO: set large fields to null
+				disposedValue = true;
+			}
+		}
+
+		// // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+		// ~IrcStream()
+		// {
+		//     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+		//     Dispose(disposing: false);
+		// }
+
+		public void Dispose()
+		{
+			// Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+			Dispose(disposing: true);
+			GC.SuppressFinalize(this);
+		}
+
+		#endregion IDisposable
+	}
 }

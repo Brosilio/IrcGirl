@@ -8,26 +8,31 @@ namespace IrcGirl
 {
     public class IrcMessage
     {
+        public string tag;
         public string prefix;
         public string command;
         public string[] parameters;
 
-        public static IrcMessage Parse(string input)
-        {
-            if (input == null || input.Length == 0)
-                return null;
+        public IrcMessage()
+		{
 
-            IrcMessage message = new IrcMessage();
+		}
 
-            for (int i = 0; i < input.Length; i++)
-            {
-                if (input[i] == ':')
+        public IrcMessage(string command, params string[] parameters)
+		{
+            this.command = command;
+            this.parameters = parameters;
+		}
 
-                    continue;
+        public bool IsReplyCode()
+		{
+            return command != null && command.Length == 3 && int.TryParse(command, out _);
+		}
 
-
-            }
-        }
+        public string GetTrailer()
+		{
+            return parameters[parameters.Length - 1];
+		}
 
         public override string ToString()
         {

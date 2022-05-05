@@ -7,20 +7,37 @@ using IrcGirl.Client;
 
 namespace Test
 {
-    public class Program
-    {
-        static async Task Main(string[] args)
-        {
-            IrcClient client = new IrcClient();
-            client.SslStreamSource = new MySslStreamSource();
+	public class Program
+	{
+		static async Task Main(string[] args)
+		{
+			IrcClient client = new IrcClient();
+			client.SslStreamSource = new MySslStreamSource();
 
-            await client.ConnectAsync("itkb.cmcc.edu", 6667, ESslMode.UseSsl);
-            Console.WriteLine("Connected");
+			client.Disconnected += async () =>
+			{
+				Wlc("Disconnected", ConsoleColor.Red);
 
-            await client.RegisterAsync();
-            Console.WriteLine("Registered");
+				await Task.Delay(2000);
+			};
 
-            await Task.Delay(Timeout.Infinite);
-        }
-    }
+			client.IrcMessageReceived += (msg) =>
+			{
+				Console.WriteLine(msg.ToString());
+			};
+
+
+
+			Wlc("REGISTERD FOR REAL", ConsoleColor.Yellow);
+
+			await Task.Delay(Timeout.Infinite);
+		}
+
+		static void Wlc(object o, ConsoleColor color)
+		{
+			Console.ForegroundColor = color;
+			Console.WriteLine(o.ToString());
+			Console.ResetColor();
+		}
+	}
 }
