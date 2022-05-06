@@ -86,6 +86,17 @@ namespace IrcGirl
 			_events.Remove(name);
 		}
 
+		public async Task WaitAny(params string[] names)
+        {
+			Task[] tasks = new Task[names.Length];
+			for (int i = 0; i < names.Length; i++)
+            {
+				tasks[i] = Wait(names[i]);
+            }
+
+			await Task.WhenAny(tasks);
+        }
+
 		public bool IsInProgress(string name)
 		{
 			if (name == null)

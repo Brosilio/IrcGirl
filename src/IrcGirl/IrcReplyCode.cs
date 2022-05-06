@@ -5,6 +5,10 @@
 	/// </summary>
 	public enum IrcReplyCode
 	{
+		/// <summary>
+		/// No reply code.
+		/// </summary>
+		None = -1,
 		RPL_WELCOME = 001,
 		RPL_YOURHOST = 002,
 		RPL_CREATED = 003,

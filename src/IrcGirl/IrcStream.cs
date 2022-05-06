@@ -11,7 +11,7 @@ namespace IrcGirl
 		private Stream _stream;
 		private StreamReader _reader;
 		private StreamWriter _writer;
-		private IrcMessageLexer _lexer;
+		//private IrcMessageParser _parser;
 
 		public IrcStream(Stream innerStream)
 		{
@@ -19,7 +19,7 @@ namespace IrcGirl
 			_reader = new StreamReader(innerStream);
 			_writer = new StreamWriter(innerStream);
 			_writer.NewLine = "\r\n";
-			_lexer = new IrcMessageLexer();
+			//_parser = new IrcMessageParser();
 		}
 
 		/// <summary>
@@ -42,7 +42,8 @@ namespace IrcGirl
 			}
 			while (line.Length == 0);
 
-			return _lexer.Lex(line);
+			IrcMessageParser _parser = new IrcMessageParser();
+			return _parser.Parse(line);
 		}
 
 		public async Task WriteAsync(IrcMessage message)
@@ -57,8 +58,8 @@ namespace IrcGirl
 
 		public Task WriteAsync(string message)
 		{
-			IrcMessageLexer lex = new IrcMessageLexer();
-			IrcMessage ircMessage = lex.Lex(message);
+			IrcMessageParser lex = new IrcMessageParser();
+			IrcMessage ircMessage = lex.Parse(message);
 
 			if (ircMessage == null)
 				throw new Exception("Invalid IRC message");

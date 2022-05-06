@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace IrcGirl.Client
 {
-	public class IrcClient : IDisposable
+	public class IrcClientBase : IDisposable
 	{
 		#region properties
 
@@ -32,16 +32,16 @@ namespace IrcGirl.Client
 		private Stream _stream;
 		private IrcStream _irc;
 		private EventAwaiter _awaiter = new EventAwaiter();
-		private Dictionary<string, Action<IrcClient, IrcMessage>> _customHandlers = new Dictionary<string, Action<IrcClient, IrcMessage>>();
-		private Dictionary<string, MessageSinkDelegate> _sinkHandlers = new Dictionary<string, MessageSinkDelegate>();
+		private Dictionary<string, Action<IrcClientBase, IrcMessage>> _customHandlers = new Dictionary<string, Action<IrcClientBase, IrcMessage>>();
+		private Dictionary<string, IrcMessageSinkContainer> _sinkHandlers = new Dictionary<string, IrcMessageSinkContainer>();
 
-		private delegate void MessageSinkDelegate(IrcMessage message);
+		internal delegate void MessageSinkDelegate(IrcMessage message);
 
 		#endregion fields
 
 		#region ctors
 
-		public IrcClient()
+		public IrcClientBase()
 		{
 			HookInternalSinks();
 		}
@@ -61,12 +61,15 @@ namespace IrcGirl.Client
 				{
 					if (attrib is IrcMessageSinkAttribute sinkAttrib)
 					{
-						foreach (string cmd in sinkAttrib.Commands)
+						IrcMessageSinkContainer sink = new IrcMessageSinkContainer()
 						{
-							Console.WriteLine($"Sink({cmd}) -> {method.Name}");
+							Command = sinkAttrib.Command,
+							ReplyCode = sinkAttrib.IrcReplyCode,
+							Delegate = (MessageSinkDelegate)method.CreateDelegate(typeof(MessageSinkDelegate), this),
+							Error = sinkAttrib.Throw,
+						};
 
-							_sinkHandlers.Add(cmd.ToUpper(), (MessageSinkDelegate)method.CreateDelegate(typeof(MessageSinkDelegate), this));
-						}
+						_sinkHandlers.Add(sink.GetName(), sink);
 					}
 				}
 			}
@@ -168,7 +171,7 @@ namespace IrcGirl.Client
 				}
 				catch (Exception ex)
 				{
-					OnDispatchExceptionInternal(ex, msg);
+					OnExceptionInternal(ex, msg);
 				}
 			}
 		}
@@ -180,7 +183,7 @@ namespace IrcGirl.Client
 		/// 
 		/// <param name="command">The IRC command to watch for.</param>
 		/// <param name="handler">An action to execute when the target command is received.</param>
-		public void On(string command, Action<IrcClient, IrcMessage> handler)
+		public void On(string command, Action<IrcClientBase, IrcMessage> handler)
 		{
 			_customHandlers.Add(command.ToLower(), handler);
 		}
@@ -194,7 +197,7 @@ namespace IrcGirl.Client
 		/// <param name="handler">An action to execute when the target reply code is received.</param>
 		/// 
 		/// <exception cref="ArgumentOutOfRangeException"></exception>
-		public void On(int replyCode, Action<IrcClient, IrcMessage> handler)
+		public void On(int replyCode, Action<IrcClientBase, IrcMessage> handler)
 		{
 			if (replyCode < 0 || replyCode > 999)
 				throw new ArgumentOutOfRangeException(nameof(replyCode), "Must be between 0 and 999");
@@ -228,8 +231,6 @@ namespace IrcGirl.Client
 			IsRegistered = false;
 
 			Disconnected?.Invoke();
-
-			_awaiter.Finish(nameof(RegisterAsync));
 		}
 
 		/// <summary>
@@ -239,14 +240,23 @@ namespace IrcGirl.Client
 		/// </summary>
 		private void OnIrcMessageInternal(IrcMessage message)
 		{
-			if (_sinkHandlers.ContainsKey(message.command.ToUpper()))
-				_sinkHandlers[message.command.ToUpper()](message);
+			if (_sinkHandlers.ContainsKey(message.Command.ToUpper()))
+			{
+				var handler = _sinkHandlers[message.Command.ToUpper()];
+
+				if (handler.Error)
+                {
+					throw new IrcException(message.AsReplyCode());
+                }
+
+				handler.Delegate(message);
+			}
 
 			if (IrcMessageReceived != null)
 				IrcMessageReceived(message);
 
-			if (_customHandlers.ContainsKey(message.command.ToLower()))
-				_customHandlers[message.command.ToLower()]?.Invoke(this, message);
+			if (_customHandlers.ContainsKey(message.Command.ToLower()))
+				_customHandlers[message.Command.ToLower()]?.Invoke(this, message);
 		}
 
 		/// <summary>
@@ -255,65 +265,16 @@ namespace IrcGirl.Client
 		/// 
 		/// <param name="ex">The exception.</param>
 		/// <param name="msg">The message that caused the exception.</param>
-		private void OnDispatchExceptionInternal(Exception ex, IrcMessage msg)
+		private void OnExceptionInternal(Exception ex, IrcMessage msg)
 		{
-			var cmd = msg.command.ToUpper();
+			var cmd = msg.Command.ToUpper();
 			if (_sinkHandlers.ContainsKey(cmd))
-				_awaiter.Error(_sinkHandlers[cmd].Method.Name, ex);
+				_awaiter.Error(_sinkHandlers[cmd].MethodName, ex);
 
 			ExceptionRaised?.Invoke(ex);
 		}
 
 		#endregion methods.events
-
-		#region methods.sinks
-
-		/// <summary>
-		/// Sink for RPL_WELCOME.
-		/// </summary>
-		[IrcMessageSink(001)]
-		private void SinkWelcomeInternal(IrcMessage message)
-		{
-			IsRegistered = true;
-			Server.Welcome = message.GetTrailer();
-
-			_awaiter.Finish("NICK");
-		}
-
-		/// <summary>
-		/// Sink for RPL_YOURHOST.
-		/// </summary>
-		[IrcMessageSink(002)]
-		private void SinkYourHostInternal(IrcMessage message) => Server.YourHost = message.GetTrailer();
-
-		/// <summary>
-		/// Sink for RPL_CREATED.
-		/// </summary>
-		[IrcMessageSink(003)]
-		private void SinkCreatedInternal(IrcMessage message) => Server.Created = message.GetTrailer();
-
-		/// <summary>
-		/// Sink for RPL_MYINFO.
-		/// </summary>
-		[IrcMessageSink(004)]
-		private void SinkMyInfoInternal(IrcMessage message) => Server.MyInfo = message.GetTrailer();
-
-		[IrcMessageSink(005)]
-		private void SinkISupportInternal(IrcMessage message) => throw new NotImplementedException();
-
-		/// <summary>
-		/// Called when a NICK message is received or error responses to a NICK
-		/// message are received.
-		/// </summary>
-		[IrcMessageSink("NICK")]
-		[IrcMessageSink(431, 432, 433, 436)]
-		private void SinkNickInternal(IrcMessage message)
-		{
-			new IrcException()
-			if (message.command == "433") throw new Exception("Nick in use");
-		}
-
-		#endregion methods.sinks
 
 		#region methods.sending
 
@@ -348,56 +309,6 @@ namespace IrcGirl.Client
 		}
 
 		#endregion methods.sending
-
-		#region methods.irc
-
-		/// <summary>
-		/// Register.
-		/// </summary>
-		/// 
-		/// <param name="userName">Your username.</param>
-		/// <param name="nickName">Your nickname.</param>
-		/// <param name="realName">Your real name.</param>
-		/// 
-		/// <returns></returns>
-		/// 
-		/// <exception cref="Exception"></exception>
-		public async Task RegisterAsync(string userName, string nickName, string realName)
-		{
-			if (IsRegistered)
-				throw new Exception("Already registered");
-
-			if (_awaiter.IsInProgress(nameof(SinkNickInternal)))
-				throw new Exception("A registration is already in progress");
-
-			await SendRaw($"NICK {nickName}");
-			await _awaiter.Wait(nameof(SinkNickInternal));
-
-			await SendRaw($"USER {userName} 0 *: {realName}");
-			await _awaiter.Wait("USER");
-
-			User = new IrcUser(this)
-			{
-				UserName = userName,
-				NickName = nickName,
-				RealName = realName
-			};
-		}
-
-		/// <summary>
-		/// Change your nickname on the server. Must be registered first.
-		/// </summary>
-		/// 
-		/// <param name="nickName">Your new nickname.</param>
-		public async Task ChangeNickAsync(string nickName)
-		{
-			CheckRegistered();
-
-			if (_awaiter.IsInProgress(nameof(ChangeNickAsync)))
-				throw new Exception("Nick change already in progress!");
-		}
-
-		#endregion methods.irc
 
 		#region methods.checks
 

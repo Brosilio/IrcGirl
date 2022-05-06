@@ -5,40 +5,49 @@ using System.Text;
 namespace IrcGirl
 {
 
-	[Serializable]
-	public class IrcException : Exception
-	{
-		public int ReplyCode { get; set; }
+    [Serializable]
+    public class IrcException : Exception
+    {
+        public int ReplyCode { get; set; }
 
-		public IrcException() { }
+        /// <summary>
+        /// Get the reply code as <see cref="IrcReplyCode"/>.
+        /// </summary>
+        public IrcReplyCode IrcReplyCode => (IrcReplyCode)this.ReplyCode;
 
-		public IrcException(string message) : base(message) { }
+        public IrcException() { }
 
-		public IrcException(string message, int replyCode) : base(message)
-		{
-			this.ReplyCode = replyCode;
-		}
+        public IrcException(IrcReplyCode replyCode) : base(replyCode.ToString())
+        {
+            this.ReplyCode = (int)replyCode;
+        }
 
-		public IrcException(string message, int replyCode, Exception inner) : base(message, inner)
-		{
-			this.ReplyCode = replyCode;
-		}
+        public IrcException(int replyCode) : base(((IrcReplyCode)replyCode).ToString())
+        {
+            this.ReplyCode = replyCode;
+        }
 
-		public IrcException(string message, Exception inner) : base(message, inner) { }
+        public IrcException(string message) : base(message) { }
 
-		protected IrcException(
-		  System.Runtime.Serialization.SerializationInfo info,
-		  System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
+        public IrcException(int replyCode, string message) : base(message)
+        {
+            this.ReplyCode = replyCode;
+        }
 
-		private static Dictionary<int, string> _codeToMessage = new Dictionary<int, string>()
-		{
-			{ 000, "" }
-		};
+        public IrcException(IrcReplyCode replyCode, string message) : base(message)
+        {
+            this.ReplyCode = (int)replyCode;
+        }
 
+        public IrcException(int replyCode, string message, Exception inner) : base(message, inner)
+        {
+            this.ReplyCode = replyCode;
+        }
 
-		public static IrcException FromReplyCode(int replyCode)
-		{
+        public IrcException(string message, Exception inner) : base(message, inner) { }
 
-		}
-	}
+        protected IrcException(
+          System.Runtime.Serialization.SerializationInfo info,
+          System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
+    }
 }
