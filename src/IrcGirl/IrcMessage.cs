@@ -11,17 +11,18 @@ namespace IrcGirl
         public string Tag;
         public string Prefix;
         public string Command;
-        public string[] parameters;
+        public string[] Parameters;
+        public int ParamLen;
 
         public IrcMessage()
         {
-            parameters = new string[15];
+            Parameters = new string[15];
         }
 
         public IrcMessage(string command, params string[] parameters)
         {
             this.Command = command;
-            this.parameters = parameters;
+            this.Parameters = parameters;
         }
 
         public bool IsReplyCode()
@@ -55,7 +56,7 @@ namespace IrcGirl
 
         public string GetTrailer()
         {
-            return parameters[parameters.Length - 1];
+            return Parameters[Parameters.Length - 1];
         }
 
         public override string ToString()
@@ -64,9 +65,9 @@ namespace IrcGirl
 
             sb.AppendFormat("{0} {1} ", Prefix, Command);
 
-            for (int i = 0; i < parameters.Length; i++)
+            for (int i = 0; i < Parameters.Length; i++)
             {
-                sb.AppendFormat("{0} ", parameters[i]);
+                sb.AppendFormat("{0} ", Parameters[i]);
             }
 
             return sb.ToString();

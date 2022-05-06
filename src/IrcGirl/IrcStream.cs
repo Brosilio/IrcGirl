@@ -42,8 +42,9 @@ namespace IrcGirl
 			}
 			while (line.Length == 0);
 
-			IrcMessageParser _parser = new IrcMessageParser();
-			return _parser.Parse(line);
+			//IrcMessageParser _parser = new IrcMessageParser();
+			//return _parser.Parse(line);
+			return IrcMessageParser.Parse(line);
 		}
 
 		public async Task WriteAsync(IrcMessage message)
@@ -58,8 +59,9 @@ namespace IrcGirl
 
 		public Task WriteAsync(string message)
 		{
-			IrcMessageParser lex = new IrcMessageParser();
-			IrcMessage ircMessage = lex.Parse(message);
+			//IrcMessageParser lex = new IrcMessageParser();
+			//IrcMessage ircMessage = lex.Parse(message);
+			IrcMessage ircMessage = IrcMessageParser.Parse(message);
 
 			if (ircMessage == null)
 				throw new Exception("Invalid IRC message");

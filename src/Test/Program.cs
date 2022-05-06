@@ -13,7 +13,6 @@ namespace Test
 	{
 		static async Task Main(string[] args)
 		{
-
             string[] messages = new string[]
             {
                 "foo bar baz asdf",
@@ -53,17 +52,65 @@ namespace Test
                 ":SomeOp MODE #channel +oo SomeUser :AnotherUser"
             };
 
-            IrcMessageParser parser = new IrcMessageParser();
 
-            foreach(string message in messages)
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
+            const int SIZE = 10_000_000;
+            string[] toParse = new string[SIZE];
+            IrcMessage[] parsed = new IrcMessage[SIZE];
+
+            for (int i = 0; i < SIZE; i++)
+			{
+                toParse[i] = messages[i % messages.Length];
+            }
+
+            Console.WriteLine($"Took {stopwatch.Elapsed.TotalSeconds} to build array of {toParse.Length:N0}");
+
+            //IrcMessageParser parser = new IrcMessageParser();
+
+            stopwatch.Restart();
+
+			ParallelOptions opt = new ParallelOptions();
+			opt.MaxDegreeOfParallelism = 6;
+
+			Parallel.For(0, SIZE, opt, (i) =>
+			{
+				//IrcMessageParser parser = new IrcMessageParser();
+				var msg = IrcMessageParser.Parse(toParse[i]);
+			});
+
+			stopwatch.Stop();
+			Console.WriteLine($"Parallel.For took {stopwatch.Elapsed.TotalSeconds} to parse {toParse.Length:N0} ({(float)toParse.Length / stopwatch.Elapsed.TotalSeconds:N2}/sec)");
+
+			stopwatch.Restart();
+			for (int i = 0; i < SIZE; i++)
+			{
+				var msg = IrcMessageParser.Parse(toParse[i]);
+                //parsed[i] = msg;
+            }
+
+            stopwatch.Stop();
+            Console.WriteLine($"For took {stopwatch.Elapsed.TotalSeconds} to parse {toParse.Length:N0} ({(float)toParse.Length / stopwatch.Elapsed.TotalSeconds:N2}/sec)");
+
+            Console.ReadLine();
+
+            foreach (string message in messages)
             {
-                var m = parser.Parse(message);
+                Console.Clear();
+
+                var m = IrcMessageParser.Parse(message);
 
                 Console.WriteLine($"TAG:{m.Tag}");
                 Console.WriteLine($"PRE:{m.Prefix}");
                 Console.WriteLine($"CMD:{m.Command}");
-                foreach (var arg in m.parameters)
-                    Console.WriteLine($"\t'{arg}'");
+
+                foreach(string arg in m.Parameters)
+                    if (arg != null)
+                        Console.WriteLine($"\t'{arg}'");
+
+                //for(int i = 0; i < m.ParamLen; i++)
+                //Console.WriteLine($"\t'{m.Parameters[i]}'");
 
                 Console.WriteLine();
 
