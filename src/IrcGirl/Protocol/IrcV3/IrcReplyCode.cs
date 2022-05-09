@@ -1,4 +1,4 @@
-﻿namespace IrcGirl
+﻿namespace IrcGirl.Protocol.IrcV3
 {
 	/// <summary>
 	/// See <seealso href="https://modern.ircdocs.horse"/>

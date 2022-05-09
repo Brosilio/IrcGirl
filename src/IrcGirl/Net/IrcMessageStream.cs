@@ -1,25 +1,63 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
-namespace IrcGirl
+using IrcGirl.Protocol.IrcV3;
+
+namespace IrcGirl.Net
 {
-	public class IrcStream : IDisposable
+	public class IrcMessageStream : IDisposable
 	{
 		private Stream _stream;
 		private StreamReader _reader;
 		private StreamWriter _writer;
-		//private IrcMessageParser _parser;
+		private IIrcMessageParser _parser;
+		private IIrcMessageValidator _validator;
+		private ConcurrentQueue<IrcMessage> _sendq;
+		private SemaphoreSlim _sendqSem;
+		private bool _probablyDisconnected;
 
-		public IrcStream(Stream innerStream)
+		public IrcMessageStream(Stream innerStream)
 		{
+			_parser = new IrcMessageParser();
+			_validator = new IrcMessageValidator();
+			_sendq = new ConcurrentQueue<IrcMessage>();
+			_sendqSem = new SemaphoreSlim(0);
+
 			_stream = innerStream;
 			_reader = new StreamReader(innerStream);
 			_writer = new StreamWriter(innerStream);
 			_writer.NewLine = "\r\n";
 			//_parser = new IrcMessageParser();
+
+			// start send loop
+			_ = Task.Factory.StartNew(
+				SendLoop,
+				TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach
+			).ConfigureAwait(false);
+		}
+
+		private async Task SendLoop()
+		{
+			//if (_sendqSem.CurrentCount == 0)
+			//	return;
+
+			while (!_probablyDisconnected)
+			{
+				await _sendqSem.WaitAsync();
+
+				while (_sendq.TryDequeue(out IrcMessage message))
+				{
+					await _writer.WriteLineAsync(message.ToString());
+				}
+
+				// flush if we haven't already
+				await _writer.FlushAsync();
+			}
 		}
 
 		/// <summary>
@@ -31,6 +69,9 @@ namespace IrcGirl
 		/// </returns>
 		public async Task<IrcMessage> ReadAsync()
 		{
+			if (_probablyDisconnected)
+				return null;
+
 			string line;
 
 			do
@@ -38,13 +79,24 @@ namespace IrcGirl
 				line = await _reader.ReadLineAsync();
 
 				if (line == null)
+				{
+					_probablyDisconnected = true;
 					return null;
+				}
 			}
 			while (line.Length == 0);
 
-			//IrcMessageParser _parser = new IrcMessageParser();
-			//return _parser.Parse(line);
-			return IrcMessageParser.Parse(line);
+			return _parser.Parse(line);
+		}
+
+		/// <summary>
+		/// Queue a message to be sent. Returns immediately. Thread-safe.
+		/// </summary>
+		/// <param name="message"></param>
+		public void QueueForSend(IrcMessage message)
+		{
+			_sendq.Enqueue(message);
+			_sendqSem.Release();
 		}
 
 		public async Task WriteAsync(IrcMessage message)
@@ -59,9 +111,7 @@ namespace IrcGirl
 
 		public Task WriteAsync(string message)
 		{
-			//IrcMessageParser lex = new IrcMessageParser();
-			//IrcMessage ircMessage = lex.Parse(message);
-			IrcMessage ircMessage = IrcMessageParser.Parse(message);
+			IrcMessage ircMessage = _parser.Parse(message);
 
 			if (ircMessage == null)
 				throw new Exception("Invalid IRC message");

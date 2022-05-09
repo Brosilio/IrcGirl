@@ -4,7 +4,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IrcGirl
+namespace IrcGirl.Protocol.IrcV3
 {
     public class IrcMessage
     {
@@ -12,17 +12,18 @@ namespace IrcGirl
         public string Prefix;
         public string Command;
         public string[] Parameters;
-        public int ParamLen;
+        public int ParameterCount;
 
         public IrcMessage()
         {
-            Parameters = new string[15];
+            Parameters = new string[IrcMessageParser.MAX_PARAMS];
         }
 
         public IrcMessage(string command, params string[] parameters)
         {
             this.Command = command;
             this.Parameters = parameters;
+            this.ParameterCount = parameters.Length;
         }
 
         public bool IsReplyCode()
@@ -63,11 +64,12 @@ namespace IrcGirl
         {
             StringBuilder sb = new StringBuilder();
 
-            sb.AppendFormat("{0} {1} ", Prefix, Command);
+            //sb.AppendFormat("{0} {1} ", Prefix, Command);
+            sb.AppendFormat(string.Join(" ", Prefix, Command));
 
-            for (int i = 0; i < Parameters.Length; i++)
+            for (int i = 0; i < ParameterCount; i++)
             {
-                sb.AppendFormat("{0} ", Parameters[i]);
+                sb.AppendFormat(" {0}", Parameters[i]);
             }
 
             return sb.ToString();

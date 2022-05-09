@@ -4,7 +4,7 @@ using System.Text;
 
 namespace IrcGirl.Client
 {
-    public enum ESslMode
+    public enum SslMode
     {
         /// <summary>
         /// Do not use any SSL.

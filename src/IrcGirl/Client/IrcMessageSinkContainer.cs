@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Text;
 
+using IrcGirl.Protocol.IrcV3;
+
 namespace IrcGirl.Client
 {
     internal class IrcMessageSinkContainer
@@ -9,7 +11,7 @@ namespace IrcGirl.Client
         internal string Command { get; set; }
         internal IrcReplyCode ReplyCode { get; set; }
         internal bool Error { get; set; }
-        internal IrcClientBase.MessageSinkDelegate Delegate { get; set; }
+        internal IrcClient.MessageSinkDelegate Delegate { get; set; }
         internal string MethodName => Delegate.Method.Name;
 
         internal string GetName()

@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Text;
 
+using IrcGirl.Protocol.IrcV3;
+
 namespace IrcGirl.Client
 {
 	[AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = true)]
