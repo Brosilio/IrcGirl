@@ -7,6 +7,6 @@ namespace IrcGirl.Protocol.IrcV3
 {
 	public interface IIrcMessageParser
 	{
-		IrcMessage Parse(string raw);
+		RawIrcMessage Parse(string raw);
 	}
 }

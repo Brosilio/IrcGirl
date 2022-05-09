@@ -14,12 +14,12 @@ namespace IrcGirl.Protocol.IrcV3
 		internal const sbyte UTF8_COLON = (sbyte)':';
 		internal const sbyte UTF8_AT = (sbyte)'@';
 
-		public IrcMessage Parse(string raw)
+		public RawIrcMessage Parse(string raw)
 		{
 			//if (raw == null || raw.Length == 0)
 			  //return null;
 
-			IrcMessage msg = new IrcMessage();
+			RawIrcMessage msg = new RawIrcMessage();
 
 			int _pos = 0;
 			int _argIdx = 0;

@@ -1,78 +1,115 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
+
+using IrcGirl.Protocol.IrcV3.IrcMessages;
 
 namespace IrcGirl.Protocol.IrcV3
 {
-    public class IrcMessage
+    public abstract class IrcMessage
     {
-        public string Tag;
-        public string Prefix;
-        public string Command;
-        public string[] Parameters;
-        public int ParameterCount;
+        private static readonly Dictionary<string, Type> _types;
+        private static readonly Dictionary<Type, Func<RawIrcMessage, IrcMessage>> _typeInitializers;
 
-        public IrcMessage()
+        /// <summary>
+        /// The raw IRC message this message was created from.
+        /// </summary>
+        public RawIrcMessage RawIrcMessage { get; private set; }
+
+        static IrcMessage()
         {
-            Parameters = new string[IrcMessageParser.MAX_PARAMS];
+            _types = new Dictionary<string, Type>();
+            _typeInitializers = new Dictionary<Type, Func<RawIrcMessage, IrcMessage>>();
+
+            RegisterMessageTypesFromAssembly(Assembly.GetExecutingAssembly());
         }
 
-        public IrcMessage(string command, params string[] parameters)
+        public static implicit operator RawIrcMessage(IrcMessage message)
         {
-            this.Command = command;
-            this.Parameters = parameters;
-            this.ParameterCount = parameters.Length;
+            return message.RawIrcMessage;
         }
 
-        public bool IsReplyCode()
+        public IrcMessage(RawIrcMessage raw)
         {
-            return Command != null && Command.Length == 3 && int.TryParse(Command, out _);
-        }
-
-        public IrcReplyCode AsReplyCode()
-        {
-            if (TryGetReplyCode(out IrcReplyCode code))
-                return code;
-
-            return IrcReplyCode.None;
-        }
-
-        public bool TryGetReplyCode(out IrcReplyCode code)
-        {
-            code = IrcReplyCode.None;
-
-            if (Command == null || Command.Length != 3)
-                return false;
-
-            if (int.TryParse(Command, out int i) && Enum.IsDefined(typeof(IrcReplyCode), i))
-            {
-                code = (IrcReplyCode)i;
-                return true;
-            }
-
-            return false;
-        }
-
-        public string GetTrailer()
-        {
-            return Parameters[Parameters.Length - 1];
+            this.RawIrcMessage = raw;
         }
 
         public override string ToString()
         {
-            StringBuilder sb = new StringBuilder();
+            return RawIrcMessage.ToString();
+        }
 
-            //sb.AppendFormat("{0} {1} ", Prefix, Command);
-            sb.AppendFormat(string.Join(" ", Prefix, Command));
+        /// <summary>
+        /// Load types from the specified assembly that have been marked with the <see cref="IrcMessageAttribute"/>
+        /// attribute.
+        /// </summary>
+        /// 
+        /// <param name="source">The source assembly to load types from.</param>
+        public static void RegisterMessageTypesFromAssembly(Assembly source)
+        {
+            // if we aren't loading defaults, we overwrite default handlers
+            bool isDefault = source.Equals(Assembly.GetExecutingAssembly());
 
-            for (int i = 0; i < ParameterCount; i++)
+            foreach (Type target in source.ExportedTypes)
             {
-                sb.AppendFormat(" {0}", Parameters[i]);
-            }
+                foreach (var attrib in target.GetCustomAttributes<IrcMessageAttribute>())
+                {
+                    if (isDefault && _types.ContainsKey(attrib.Command))
+                        throw new InvalidOperationException($"Duplicate IrcMessageAttribute({attrib.Command}) defined in assembly");
 
-            return sb.ToString();
+                    _types[attrib.Command] = target;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Check if the loaded types could convert a RawIrcMessage with the specified command to
+        /// a fancier wrapper type.
+        /// </summary>
+        /// 
+        /// <param name="command">The command</param>
+        /// 
+        /// <returns>
+        /// <see langword="true"/> if the command is known, <see langword="false"/> if it is not.
+        /// </returns>
+        public static bool CanFancifyMessageType(string command)
+        {
+            return _types.ContainsKey(command);
+        }
+
+        /// <summary>
+        /// Create and initialize an instance of an IrcMessage using the message types
+        /// loaded by <see cref="RegisterMessageTypesFromAssembly(Assembly)"/>.
+        /// </summary>
+        /// 
+        /// <param name="raw">The raw message input.</param>
+        /// 
+        /// <returns>
+        /// An IrcMessage that may be cast to a more specific type of IrcMessage, or null if there
+        /// is no type capable of handling the raw message.
+        /// </returns>
+        public static IrcMessage CreateInstance(RawIrcMessage raw)
+        {
+            if (!_types.ContainsKey(raw.Command))
+                return null;
+
+            Type tMsg = _types[raw.Command];
+
+            // if we have a cached new() expression for the type, use it
+            if (_typeInitializers.ContainsKey(tMsg))
+                return _typeInitializers[tMsg](raw);
+
+            // otherwise, create the initializer and cache it
+            ConstructorInfo ctor = tMsg.GetConstructor(new[] { typeof(RawIrcMessage) });
+            ParameterExpression paramExpr = Expression.Parameter(typeof(RawIrcMessage));
+            NewExpression newExpr = Expression.New(ctor, paramExpr);
+
+            var func = Expression.Lambda<Func<RawIrcMessage, IrcMessage>>(newExpr, paramExpr).Compile();
+            _typeInitializers[tMsg] = func;
+
+            return func(raw);
         }
     }
 }

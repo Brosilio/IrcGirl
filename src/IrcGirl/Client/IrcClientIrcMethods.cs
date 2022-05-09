@@ -9,40 +9,39 @@ namespace IrcGirl.Client
 {
 	public static class IrcClientIrcMethods
 	{
-		public static void IrcQuit(this IrcClient client, string reason)
-		{
-			client.Send(new IrcMessage("QUIT", reason));
-		}
-
-		public static void IrcNick(this IrcClient client, string nickName)
-		{
-			client.Send(new IrcMessage("NICK", nickName));
-		}
-
-		public static void IrcPass(this IrcClient client, string password)
-		{
-			client.Send(new IrcMessage("PASS", password));
-		}
-
-		public static void IrcUser(this IrcClient client, string userName, string realName)
-		{
-			client.Send(new IrcMessage("USER", userName, "0", "*", realName));
-		}
-
-		public static void IrcJoin(this IrcClient client, string channel)
-		{
-			client.Send(new IrcMessage("JOIN", channel));
-		}
-
 		/// <summary>
 		/// Send a QUIT message to the server.
 		/// </summary>
 		/// <param name="client"></param>
 		/// <param name="reason"></param>
-		/// <returns></returns>
-		public static async Task IrcQuitAsync(this IrcClient client, string reason)
+		public static void IrcQuit(this IrcClientBase client, string reason)
 		{
-
+			client.Send(new RawIrcMessage("QUIT", reason));
 		}
+
+		public static void IrcNick(this IrcClientBase client, string nickName)
+		{
+			client.Send(new RawIrcMessage("NICK", nickName));
+		}
+
+		public static void IrcPass(this IrcClientBase client, string password)
+		{
+			client.Send(new RawIrcMessage(IrcCommands.PASS, password));
+		}
+
+		public static void IrcUser(this IrcClientBase client, string userName, string realName)
+		{
+			client.Send(new RawIrcMessage("USER", userName, "0", "*", realName));
+		}
+
+		public static void IrcJoin(this IrcClientBase client, string channel)
+		{
+			client.Send(new RawIrcMessage("JOIN", channel));
+		}
+
+		public static void IrcPrivMsg(this IrcClientBase client, string message, params string[] targets)
+        {
+			client.Send(new RawIrcMessage(IrcCommands.PRIVMSG, string.Join(",", targets), $":{message}"));
+        }
 	}
 }

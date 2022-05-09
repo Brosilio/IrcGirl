@@ -16,16 +16,14 @@ namespace IrcGirl.Net
 		private StreamReader _reader;
 		private StreamWriter _writer;
 		private IIrcMessageParser _parser;
-		private IIrcMessageValidator _validator;
-		private ConcurrentQueue<IrcMessage> _sendq;
+		private ConcurrentQueue<RawIrcMessage> _sendq;
 		private SemaphoreSlim _sendqSem;
 		private bool _probablyDisconnected;
 
 		public IrcMessageStream(Stream innerStream)
 		{
 			_parser = new IrcMessageParser();
-			_validator = new IrcMessageValidator();
-			_sendq = new ConcurrentQueue<IrcMessage>();
+			_sendq = new ConcurrentQueue<RawIrcMessage>();
 			_sendqSem = new SemaphoreSlim(0);
 
 			_stream = innerStream;
@@ -41,6 +39,9 @@ namespace IrcGirl.Net
 			).ConfigureAwait(false);
 		}
 
+		/// <summary>
+		/// The internal send loop.
+		/// </summary>
 		private async Task SendLoop()
 		{
 			//if (_sendqSem.CurrentCount == 0)
@@ -50,7 +51,7 @@ namespace IrcGirl.Net
 			{
 				await _sendqSem.WaitAsync();
 
-				while (_sendq.TryDequeue(out IrcMessage message))
+				while (_sendq.TryDequeue(out RawIrcMessage message))
 				{
 					await _writer.WriteLineAsync(message.ToString());
 				}
@@ -67,7 +68,7 @@ namespace IrcGirl.Net
 		/// <returns>
 		/// An IrcMessage if available or null if the input stream is dead.
 		/// </returns>
-		public async Task<IrcMessage> ReadAsync()
+		public async Task<RawIrcMessage> ReadAsync()
 		{
 			if (_probablyDisconnected)
 				return null;
@@ -90,16 +91,31 @@ namespace IrcGirl.Net
 		}
 
 		/// <summary>
-		/// Queue a message to be sent. Returns immediately. Thread-safe.
+		/// Queue a <see cref="RawIrcMessage"/> to be sent to the server.
+		/// 
+		/// The message is validated immediately, sent eventually. Thread-safe.
 		/// </summary>
-		/// <param name="message"></param>
-		public void QueueForSend(IrcMessage message)
+		/// 
+		/// <param name="message">The message to send.</param>
+		public void QueueForSend(RawIrcMessage message)
 		{
+			if (IrcMessage.CanFancifyMessageType(message.Command))
+				_ = IrcMessage.CreateInstance(message);
+
 			_sendq.Enqueue(message);
 			_sendqSem.Release();
 		}
 
-		public async Task WriteAsync(IrcMessage message)
+		/// <summary>
+		/// Immediately an IRC message to the network.
+		/// Returns when the message sent. Not thread-safe, may conflict with the
+		/// internal send queue.
+		/// </summary>
+		/// 
+		/// <param name="message">The message to send.</param>
+		///
+		/// <exception cref="ArgumentNullException"></exception>
+		public async Task WriteAsync(RawIrcMessage message)
 		{
 			if (message == null)
 				throw new ArgumentNullException(nameof(message));
@@ -109,9 +125,19 @@ namespace IrcGirl.Net
 			await _writer.FlushAsync();
 		}
 
+		/// <summary>
+		/// Immediately write an IRC message to the network.
+		/// The message is parsed and validated before sending. Not thread-safe,
+		/// may conflict with the internal send queue. Use <see cref="QueueForSend(RawIrcMessage)"/>
+		/// instead.
+		/// </summary>
+		/// 
+		/// <param name="message">The message to send.</param>
+		/// 
+		/// <exception cref="Exception"></exception>
 		public Task WriteAsync(string message)
 		{
-			IrcMessage ircMessage = _parser.Parse(message);
+			RawIrcMessage ircMessage = _parser.Parse(message);
 
 			if (ircMessage == null)
 				throw new Exception("Invalid IRC message");
@@ -119,6 +145,11 @@ namespace IrcGirl.Net
 			return WriteAsync(ircMessage);
 		}
 
+		/// <summary>
+		/// Write a raw string to the network. The string is not parsed or validated. Use with caution.
+		/// </summary>
+		/// 
+		/// <param name="message">The message to send.</param>
 		public async Task WriteRawAsync(string message)
 		{
 			await _writer.WriteLineAsync(message);

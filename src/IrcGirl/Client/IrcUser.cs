@@ -10,9 +10,9 @@ namespace IrcGirl.Client
         public string RealName { get; internal set; }
         public string NickName { get; internal set; }
 
-        private IrcClient _client;
+        private IrcClientBase _client;
 
-        internal IrcUser(IrcClient from)
+        internal IrcUser(IrcClientBase from)
         {
             _client = from;
         }

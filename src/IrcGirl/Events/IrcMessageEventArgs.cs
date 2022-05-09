@@ -6,13 +6,13 @@ using IrcGirl.Protocol.IrcV3;
 
 namespace IrcGirl.Events
 {
-	public class IrcMessageEventArgs : EventArgs
-	{
-		public IrcMessage IrcMessage { get; private set; }
+    public class IrcMessageEventArgs<TMessage> : EventArgs where TMessage : IrcMessage
+    {
+        public TMessage Message { get; set; }
 
-		public IrcMessageEventArgs(IrcMessage ircMessage)
-		{
-			IrcMessage = ircMessage;
-		}
-	}
+        public IrcMessageEventArgs(TMessage ircMessage)
+        {
+            this.Message = ircMessage;
+        }
+    }
 }

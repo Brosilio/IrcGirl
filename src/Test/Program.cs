@@ -61,7 +61,7 @@ namespace Test
 
 			const int SIZE = 10_000_000;
 			string[] toParse = new string[SIZE];
-			IrcMessage[] parsed = new IrcMessage[SIZE];
+			RawIrcMessage[] parsed = new RawIrcMessage[SIZE];
 
 			for (int i = 0; i < SIZE; i++)
 			{

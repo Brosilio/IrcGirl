@@ -6,7 +6,7 @@ using IrcGirl.Protocol.IrcV3;
 
 namespace IrcGirl.Client
 {
-	public class EventedIrcClient : IrcClient
+	public class EventedIrcClient : IrcClientBase
 	{
 		/// <summary>
 		/// Raised when the client connects to a host.
@@ -39,17 +39,17 @@ namespace IrcGirl.Client
 		}
 
 		/// <summary>
-		/// Raised on every received <see cref="IrcMessage"/>.
+		/// Raised on every received <see cref="RawIrcMessage"/>.
 		/// </summary>
-		public event EventHandler<IrcMessageEventArgs> MessageReceived;
-		protected override void OnIrcMessageReceived(IrcMessageEventArgs e)
+		public event EventHandler<RawIrcMessageEventArgs> RawMessageReceived;
+		protected override void OnRawIrcMessageReceived(RawIrcMessageEventArgs e)
 		{
-			base.OnIrcMessageReceived(e);
-			MessageReceived?.Invoke(this, e);
+			base.OnRawIrcMessageReceived(e);
+			RawMessageReceived?.Invoke(this, e);
 		}
 
 		/// <summary>
-		/// Raised when an <see cref="IrcMessage"/> is received and contains an <see cref="IrcReplyCode"/> that indicates
+		/// Raised when an <see cref="RawIrcMessage"/> is received and contains an <see cref="IrcReplyCode"/> that indicates
 		/// an error.
 		/// </summary>
 		public event EventHandler<IrcErrorReplyEventArgs> IrcErrorReceived;
@@ -60,7 +60,7 @@ namespace IrcGirl.Client
 		}
 
 		/// <summary>
-		/// Raised when an inbound <see cref="IrcMessage"/> is malformed.
+		/// Raised when an inbound <see cref="RawIrcMessage"/> is malformed.
 		/// </summary>
 		public event EventHandler<IrcProtocolViolationEventArgs> InboundIrcProtocolViolation;
 		protected override void OnInboundIrcProtocolViolation(IrcProtocolViolationEventArgs e)
@@ -70,7 +70,7 @@ namespace IrcGirl.Client
 		}
 
 		/// <summary>
-		/// Raised when an outbound <see cref="IrcMessage"/> is malformed.
+		/// Raised when an outbound <see cref="RawIrcMessage"/> is malformed.
 		/// </summary>
 		public event EventHandler<IrcProtocolViolationEventArgs> OutboundIrcProtocolViolation;
 		protected override void OnOutboundIrcProtocolViolation(IrcProtocolViolationEventArgs e)

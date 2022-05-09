@@ -7,9 +7,9 @@ namespace IrcGirl.Events
 	public class IrcErrorReplyEventArgs : EventArgs
 	{
 		public IrcReplyCode IrcReplyCode { get; private set; }
-		public IrcMessage IrcMessage { get; private set; }
+		public RawIrcMessage IrcMessage { get; private set; }
 
-		public IrcErrorReplyEventArgs(IrcReplyCode replyCode, IrcMessage message)
+		public IrcErrorReplyEventArgs(IrcReplyCode replyCode, RawIrcMessage message)
 		{
 			this.IrcReplyCode = replyCode;
 			this.IrcMessage = message;
