@@ -29,7 +29,7 @@ namespace LibTest
             //Console.WriteLine($"'{e.RawIrcMessage}'");
         }
 
-        protected override void OnIrcWelcomeReceived(IrcMessageEventArgs<WelcomeIrcMessage> e)
+        protected override void OnIrcWelcome(WelcomeIrcMessage e)
         {
 
         }

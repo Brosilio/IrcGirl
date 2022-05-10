@@ -26,14 +26,7 @@ namespace IrcGirl.Protocol.IrcV3.IrcMessages.Rpl
             }
         }
 
-        public int Port
-        {
-            get
-            {
-                return int.Parse(RawIrcMessage.Parameters[2]);
-            }
-        }
-
+        public int Port { get; private set; }
 
         public string Info
         {
@@ -50,6 +43,17 @@ namespace IrcGirl.Protocol.IrcV3.IrcMessages.Rpl
         {
             if (raw.ParameterCount < 3 || raw.ParameterCount > 4)
                 throw new InvalidIrcMessageException($"Expected 3 or 4 parameters, got {raw.ParameterCount}", raw);
+
+            if (int.TryParse(raw.Parameters[2], out int port))
+			{
+                Port = port;
+                if (port < 0 || port > 65535)
+                    throw new InvalidIrcMessageException("Port was out of range (0-65535)");
+			}
+            else
+			{
+                throw new InvalidIrcMessageException("Expected Parameters[2] to be int, got invalid value", raw);
+			}
         }
     }
 }

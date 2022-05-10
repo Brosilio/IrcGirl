@@ -230,13 +230,13 @@ namespace IrcGirl.Client
         /// <summary>
         /// Called when an IRC message with reply code 001 is received.
         /// </summary>
-        protected virtual void OnIrcWelcomeReceived(WelcomeIrcMessage msg) { }
+        protected virtual void OnIrcWelcome(WelcomeIrcMessage msg) { }
 
         [IrcMessageSink(IrcReplyCode.RPL_WELCOME)]
         private void OnIrcWelcomeReceivedInternal(WelcomeIrcMessage msg)
         {
             IsRegistered = true;
-            OnIrcWelcomeReceived(msg);
+            OnIrcWelcome(msg);
         }
 
         [IrcMessageSink(IrcReplyCode.RPL_YOURHOST)] protected virtual void OnIrcYourHost(YourHostIrcMessage msg) { }
@@ -297,6 +297,79 @@ namespace IrcGirl.Client
         [IrcMessageSink(IrcReplyCode.RPL_LINKS)] protected virtual void OnLinks(LinksIrcMessage msg) { }
         [IrcMessageSink(IrcReplyCode.RPL_ENDOFLINKS)] protected virtual void OnEndOfLinks(EndOfLinksIrcMessage msg) { }
         [IrcMessageSink(IrcReplyCode.RPL_BANLIST)] protected virtual void OnBanList(BanListIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.RPL_ENDOFBANLIST)] protected virtual void OnEndOfBanList(EndOfBanListIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.RPL_ENDOFWHOWAS)] protected virtual void OnEndOfWhoWas(EndOfWhoWasIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.RPL_INFO)] protected virtual void OnInfo(InfoIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.RPL_ENDOFINFO)] protected virtual void OnEndOfInfo(EndOfInfoIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.RPL_MOTDSTART)] protected virtual void OnMotdStart(MotdStartIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.RPL_MOTD)] protected virtual void OnMotd(MotdIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.RPL_ENDOFMOTD)] protected virtual void OnEndOfMotd(EndOfMotdIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.RPL_WHOISHOST)] protected virtual void OnWhoIsHost(WhoIsHostIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.RPL_WHOISMODES)] protected virtual void OnWhoIsModes(WhoIsModesIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.RPL_YOUREOPER)] protected virtual void OnYoureOper(YoureOperIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.RPL_REHASHING)] protected virtual void OnRehashing(RehashingIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.RPL_TIME)] protected virtual void OnTime(TimeIrcMessage msg) { }
+
+        [IrcMessageSink(IrcReplyCode.ERR_UNKNOWNERROR)] protected virtual void OnUnknownError(UnknownErrorIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_NOSUCHNICK)] protected virtual void OnNoSuchNick(NoSuchNickIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_NOSUCHSERVER)] protected virtual void OnNosuchServer(NoSuchServerIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_NOSUCHCHANNEL)] protected virtual void OnNoSuchChannel(NoSuchChannelIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_CANNOTSENDTOCHAN)] protected virtual void OnCannotSendToChan(CannotSendToChannelIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_TOOMANYCHANNELS)] protected virtual void OnTooManyChannels(TooManyChannelsIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_WASNOSUCHNICK)] protected virtual void OnWasNoSuchNick(WasNoSuchNickIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_NOORIGIN)] protected virtual void OnNoOrigin(NoOriginIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_INPUTTOOLONG)] protected virtual void OnInputTooLong(InputTooLongIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_UNKNOWNCOMMAND)] protected virtual void OnUnknownCommand(UnknownCommandIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_NOMOTD)] protected virtual void OnNoMotd(NoMotdIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_ERRONEUSNICKNAME)] protected virtual void OnErroneusNickname(ErroneusNicknameIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_NICKNAMEINUSE)] protected virtual void OnNicknameInUse(NicknameInUseIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_USERNOTINCHANNEL)] protected virtual void OnUserNotInChannel(UserNotInChannelIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_NOTONCHANNEL)] protected virtual void OnNotOnChannel(NotOnChannelIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_USERONCHANNEL)] protected virtual void OnUserOnChannel(UserOnChannelIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_NOTREGISTERED)] protected virtual void OnNotRegistered(NotRegisteredIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_NEEDMOREPARAMS)] protected virtual void OnNeedMoreParams(NeedMoreParamsIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_ALREADYREGISTERED)] protected virtual void OnAlreadyRegistered(AlreadyRegisteredIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_PASSWDMISMATCH)] protected virtual void OnPasswdMismatch(PasswdMismatchIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_YOUREBANNEDCREEP)] protected virtual void OnYoureBannedCreep(YoureBannedCreepIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_CHANNELISFULL)] protected virtual void OnChannelIsFull(ChannelIsFullIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_UNKNOWNMODE)] protected virtual void OnUnknownMode(UnknownModeIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_INVITEONLYCHAN)] protected virtual void OnInviteOnlyChan(InviteOnlyChanIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_BANNEDFROMCHAN)] protected virtual void OnBannedFromChan(BannedFromChanIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_BADCHANNELKEY)] protected virtual void OnBadChannelKey(BadChannelKeyIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_BADCHANMASK)] protected virtual void OnBadChanMask(BadChanMaskIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_NOPRIVILEGES)] protected virtual void OnNoPrivileges(NoPrivilegesIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_CHANOPRIVSNEEDED)] protected virtual void OnChanOPrivsNeeded(ChanOPrivsNeededIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_CANTKILLSERVER)] protected virtual void OnCantKillServer(CantKillServerIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_NOOPERHOST)] protected virtual void OnNoOperHost(NoOperHostIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_UMODEUNKNOWNFLAG)] protected virtual void OnUModeUnknownFlag(UModeUnknownFlagIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_USERSDONTMATCH)] protected virtual void OnUsersDontMatch(UsersDontMatchIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_HELPNOTFOUND)] protected virtual void OnHelpNotFound(HelpNotFoundIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_INVALIDKEY)] protected virtual void OnInvalidKey(InvalidKeyIrcMessage msg) { }
+
+        [IrcMessageSink(IrcReplyCode.RPL_STARTTLS)] protected virtual void OnStartTls(StartTlsIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.RPL_WHOISSECURE)] protected virtual void OnWhoIsSecure(WhoIsSecureIrcMessage msg) { }
+
+        [IrcMessageSink(IrcReplyCode.ERR_STARTTLS)] protected virtual void OnStartTlsErr(StartTlsErrIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_INVALIDMODEPARAM)] protected virtual void OnInvalidModeParam(InvalidModeParamIrcMessage msg) { }
+
+        [IrcMessageSink(IrcReplyCode.RPL_HELPSTART)] protected virtual void OnHelpStart(HelpStartIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.RPL_HELPTXT)] protected virtual void OnHelpTxt(HelpTxtIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.RPL_ENDOFHELP)] protected virtual void OnEndOfHelp(EndOfHelpIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_NOPRIVS)] protected virtual void OnNoPrivs(NoPrivsIrcMessage msg) { }
+
+        [IrcMessageSink(IrcReplyCode.RPL_LOGGEDIN)] protected virtual void OnLoggedIn(LoggedInIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.RPL_LOGGEDOUT)] protected virtual void OnLoggedOut(LoggedOutIrcMessage msg) { }
+
+        [IrcMessageSink(IrcReplyCode.ERR_NICKLOCKED)] protected virtual void OnNickLocked(NickLockedIrcMessage msg) { }
+
+        [IrcMessageSink(IrcReplyCode.RPL_SASLSUCCESS)] protected virtual void OnSaslSuccess(SaslSuccessIrcMessage msg) { }
+
+        [IrcMessageSink(IrcReplyCode.ERR_SASLFAIL)] protected virtual void OnSaslFail(SaslFailIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_SASLTOOLONG)] protected virtual void OnSaslTooLong(SaslTooLongIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_SASLABORTED)] protected virtual void OnSaslAborted(SaslAbortedIrcMessage msg) { }
+        [IrcMessageSink(IrcReplyCode.ERR_SASLALREADY)] protected virtual void OnSaslAlready(SaslAlreadyIrcMessage msg) { }
+
+        [IrcMessageSink(IrcReplyCode.RPL_SASLMECHS)] protected virtual void OnSaslMechs(SaslMechsIrcMessage msg) { }
 
         #endregion sinks
 
