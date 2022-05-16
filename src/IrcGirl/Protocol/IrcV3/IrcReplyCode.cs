@@ -6,7 +6,7 @@
 	public enum IrcReplyCode
 	{
 		/// <summary>
-		/// No reply code.
+		/// No reply code, invalid reply code, or unknown reply code.
 		/// </summary>
 		None = -1,
 		RPL_WELCOME = 001,

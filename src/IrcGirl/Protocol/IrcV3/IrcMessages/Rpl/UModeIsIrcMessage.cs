@@ -5,10 +5,10 @@ using System.Text;
 namespace IrcGirl.Protocol.IrcV3.IrcMessages.Rpl
 {
     /// <summary>
-    /// <see href="https://modern.ircdocs.horse/#rplisupport-005"/>
+    /// <see href="https://modern.ircdocs.horse/#rplumodeis-221"/>
     /// </summary>
-    [IrcMessage(IrcReplyCode.RPL_ISUPPORT)]
-    public class ISupportIrcMessage : IrcMessage
+    [IrcMessage(IrcReplyCode.RPL_UMODEIS)]
+    public class UModeIsIrcMessage : IrcMessage
     {
         public string Client
         {
@@ -18,7 +18,7 @@ namespace IrcGirl.Protocol.IrcV3.IrcMessages.Rpl
             }
         }
 
-        public string Message
+        public string UserModes
         {
             get
             {
@@ -26,10 +26,10 @@ namespace IrcGirl.Protocol.IrcV3.IrcMessages.Rpl
             }
         }
 
-        public ISupportIrcMessage(RawIrcMessage raw) : base(raw)
+        public UModeIsIrcMessage(RawIrcMessage raw) : base(raw)
         {
-            if (raw.ParameterCount < 2)
-                throw new InvalidIrcMessageException($"Expected at least 2 parameters, got {raw.ParameterCount}", raw);
+            if (raw.ParameterCount != 2)
+                throw InvalidIrcMessageException.WrongParamCount(2, raw);
         }
     }
 }

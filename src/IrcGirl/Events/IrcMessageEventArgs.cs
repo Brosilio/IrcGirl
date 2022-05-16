@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-using IrcGirl.Protocol.IrcV3;
+using IrcGirl.Protocol.IrcV3.IrcMessages;
 
 namespace IrcGirl.Events
 {

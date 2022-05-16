@@ -4,9 +4,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 
-using IrcGirl.Protocol.IrcV3.IrcMessages;
-
-namespace IrcGirl.Protocol.IrcV3
+namespace IrcGirl.Protocol.IrcV3.IrcMessages
 {
     public abstract class IrcMessage
     {
@@ -14,9 +12,9 @@ namespace IrcGirl.Protocol.IrcV3
         private static readonly Dictionary<Type, Func<RawIrcMessage, IrcMessage>> _typeInitializers;
 
         /// <summary>
-        /// The raw IRC message this message was created from.
+        /// The raw IRC message this message was created from, if any.
         /// </summary>
-        public RawIrcMessage RawIrcMessage { get; private set; }
+        public RawIrcMessage RawIrcMessage { get; protected set; }
 
         static IrcMessage()
         {
@@ -31,9 +29,21 @@ namespace IrcGirl.Protocol.IrcV3
             return message.RawIrcMessage;
         }
 
+        /// <summary>
+        /// Create a new instance of <see cref="IrcMessage"/> from a <see cref="RawIrcMessage"/>.
+        /// Use <see cref="CreateInstance(RawIrcMessage)"/> to create a strongly-typed IRC message
+        /// instance and also validate it.
+        /// </summary>
+        /// 
+        /// <param name="raw">The raw IRC message.</param>
         public IrcMessage(RawIrcMessage raw)
         {
             this.RawIrcMessage = raw;
+        }
+
+        public IrcMessage()
+        {
+
         }
 
         public override string ToString()
@@ -92,7 +102,7 @@ namespace IrcGirl.Protocol.IrcV3
         /// </returns>
         public static IrcMessage CreateInstance(RawIrcMessage raw)
         {
-            if (!_types.ContainsKey(raw.Command))
+            if (!CanFancifyMessageType(raw.Command))
                 return null;
 
             Type tMsg = _types[raw.Command];

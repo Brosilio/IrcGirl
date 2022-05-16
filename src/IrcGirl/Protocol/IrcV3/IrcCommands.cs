@@ -53,6 +53,5 @@ namespace IrcGirl.Protocol.IrcV3
             LINKS = "LINKS",
             USERHOST = "USERHOST",
             WALLOPS = "WALLOPS";
-
     }
 }

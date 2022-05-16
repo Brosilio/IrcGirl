@@ -49,7 +49,7 @@ namespace IrcGirl
         public static InvalidIrcMessageException WrongParamCount(int expected, RawIrcMessage message)
         {
             return new InvalidIrcMessageException(
-                string.Format("Expected {0} parameters, got {1}", expected, message.ParameterCount),
+                string.Format("IrcMessage '{0}' expects {1} parameters, got {2}", message.Command, expected, message.ParameterCount),
                 message
             );
         }

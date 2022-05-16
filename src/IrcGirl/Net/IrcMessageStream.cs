@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using IrcGirl.Protocol.IrcV3;
+using IrcGirl.Protocol.IrcV3.IrcMessages;
 
 namespace IrcGirl.Net
 {
@@ -16,14 +17,14 @@ namespace IrcGirl.Net
 		private StreamReader _reader;
 		private StreamWriter _writer;
 		private IIrcMessageParser _parser;
-		private ConcurrentQueue<RawIrcMessage> _sendq;
+		private ConcurrentQueue<string> _sendq;
 		private SemaphoreSlim _sendqSem;
 		private bool _probablyDisconnected;
 
 		public IrcMessageStream(Stream innerStream)
 		{
 			_parser = new IrcMessageParser();
-			_sendq = new ConcurrentQueue<RawIrcMessage>();
+			_sendq = new ConcurrentQueue<string>();
 			_sendqSem = new SemaphoreSlim(0);
 
 			_stream = innerStream;
@@ -51,9 +52,9 @@ namespace IrcGirl.Net
 			{
 				await _sendqSem.WaitAsync();
 
-				while (_sendq.TryDequeue(out RawIrcMessage message))
+				while (_sendq.TryDequeue(out string message))
 				{
-					await _writer.WriteLineAsync(message.ToString());
+					await _writer.WriteLineAsync(message);
 				}
 
 				// flush if we haven't already
@@ -97,19 +98,22 @@ namespace IrcGirl.Net
 		/// </summary>
 		/// 
 		/// <param name="message">The message to send.</param>
+		/// 
+		/// <exception cref="InvalidIrcMessageException"/>
 		public void QueueForSend(RawIrcMessage message)
 		{
-			if (IrcMessage.CanFancifyMessageType(message.Command))
-				_ = IrcMessage.CreateInstance(message);
+			// if the message is of a known type, ensure it is valid
+			_ = IrcMessage.CreateInstance(message);
 
-			_sendq.Enqueue(message);
+			// serialize the message and queue it
+			_sendq.Enqueue(message.Serialize());
 			_sendqSem.Release();
 		}
 
 		/// <summary>
 		/// Immediately an IRC message to the network.
 		/// Returns when the message sent. Not thread-safe, may conflict with the
-		/// internal send queue.
+		/// internal send queue (see <see cref="QueueForSend(RawIrcMessage)"/>).
 		/// </summary>
 		/// 
 		/// <param name="message">The message to send.</param>
@@ -120,7 +124,7 @@ namespace IrcGirl.Net
 			if (message == null)
 				throw new ArgumentNullException(nameof(message));
 
-			await _writer.WriteAsync(message.ToString());
+			await _writer.WriteAsync(message.Serialize());
 			await _writer.WriteLineAsync();
 			await _writer.FlushAsync();
 		}
