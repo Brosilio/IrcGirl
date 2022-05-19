@@ -6,5 +6,7 @@ namespace IrcGirl.Protocol.Ctcp
 {
     public class RawCtcpMessage
     {
+        public string Command;
+        public string ParameterString;
     }
 }

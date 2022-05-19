@@ -37,11 +37,15 @@ namespace IrcGirl.Client
 
         private TcpClient _tcpClient;
         private IrcMessageStream _ircStream;
-        private SinkDictionary _sinks;
+        private CtcpMessageParser _ctcpParser;
+        private SinkDictionary _ircSinks;
+        private SinkDictionary _ctcpSinks;
 
         public IrcClient()
         {
-            _sinks = new SinkDictionary();
+            _ircSinks = new SinkDictionary();
+            _ctcpSinks = new SinkDictionary();
+            _ctcpParser = new CtcpMessageParser();
 
             SslStreamSource = new DefaultSslStreamSource();
             Me = new IrcUser(this);
@@ -58,24 +62,32 @@ namespace IrcGirl.Client
             {
                 var methodParams = method.GetParameters();
                 if (methodParams == null || methodParams.Length != 1) continue;
-                if (methodParams[0].ParameterType.BaseType != typeof(IrcMessage)) continue;
+                //if (methodParams[0].ParameterType.BaseType != typeof(IrcMessage)) continue;
 
-                var customAttribs = method.GetCustomAttributes(typeof(IrcMessageSinkAttribute), false);
+                var customAttribs = method.GetCustomAttributes(false);
                 if (customAttribs == null || customAttribs.Length == 0) continue;
 
                 foreach (var genericAttrib in customAttribs)
                 {
-                    if (genericAttrib is IrcMessageSinkAttribute sinkAttrib)
+                    // generate expression
+                    ParameterExpression paramExpr = Expression.Parameter(typeof(object));
+                    UnaryExpression castExpr = Expression.Convert(paramExpr, methodParams[0].ParameterType);
+                    ConstantExpression thisExpr = Expression.Constant(this);
+                    MethodCallExpression callExpr = Expression.Call(thisExpr, method, castExpr);
+                    Action<object> invoker = Expression.Lambda<Action<object>>(callExpr, paramExpr).Compile();
+
+                    // assign irc sink
+                    if (genericAttrib is IrcMessageSinkAttribute ircSinkAttrib)
                     {
-                        ParameterExpression paramExpr = Expression.Parameter(typeof(object));
-                        UnaryExpression castExpr = Expression.Convert(paramExpr, methodParams[0].ParameterType);
-                        ConstantExpression thisExpr = Expression.Constant(this);
-                        MethodCallExpression callExpr = Expression.Call(thisExpr, method, castExpr);
+                        _ircSinks[ircSinkAttrib.Command] = invoker;
+                        continue;
+                    }
 
-                        Action<object> invoker = Expression.Lambda<Action<object>>(callExpr, paramExpr).Compile();
-
-                        // overwrite...
-                        _sinks[sinkAttrib.Command] = invoker;
+                    // assign ctcp sink
+                    if (genericAttrib is CtcpMessageSinkAttribute ctcpSinkAttrib)
+                    {
+                        _ctcpSinks[ctcpSinkAttrib.Command] = invoker;
+                        continue;
                     }
                 }
             }
@@ -106,8 +118,18 @@ namespace IrcGirl.Client
                     if (rawMessage.TryGetReplyCode(out IrcReplyCode code) && rawMessage.IsErrorReply())
                         OnIrcErrorReplyReceived(code, rawMessage);
 
+                    // detect ctcp messsage
+                    if (_ctcpParser.TryUnbox(rawMessage, out RawCtcpMessage rawCtcpMessage)
+                        && _ctcpSinks.TryGetValue(rawCtcpMessage.Command, out var ctcpSink))
+                    {
+                        ctcpSink(rawCtcpMessage);
+
+                        // do not continue processing as an IRC message
+                        return;
+                    }
+
                     // if we have an internal sink for the message, use it
-                    if (_sinks.TryGetValue(rawMessage.Command, out var sink))
+                    if (_ircSinks.TryGetValue(rawMessage.Command, out var sink))
                     {
                         // convert the raw message to a fancy message of whatever type
                         IrcMessage message = IrcMessage.CreateInstance(rawMessage);
@@ -437,7 +459,7 @@ namespace IrcGirl.Client
         /// 
         /// <param name="from">The user the message is from.</param>
         /// <param name="msg">The message.</param>
-        protected virtual void OnIrcPrivMsg(IrcUser from, PrivMsgIrcMessage msg){ }
+        protected virtual void OnIrcPrivMsg(IrcUser from, PrivMsgIrcMessage msg) { }
         [IrcMessageSink(IrcCommands.PRIVMSG)]
         private void OnIrcPrivMsgInternal(PrivMsgIrcMessage msg)
         {
