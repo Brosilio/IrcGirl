@@ -9,30 +9,37 @@ namespace IrcGirl.Protocol.Ctcp
 {
     public unsafe class CtcpMessageParser
     {
-        public RawCtcpMessage Unbox(RawIrcMessage rim)
+        public bool TryUnbox(RawIrcMessage rim, out RawCtcpMessage rcm)
         {
             //if (string.IsNullOrWhiteSpace(rim.Command))
             //    return null;
 
-            if (rim.ParameterCount == 0)
-                return null;
+            rcm = null;
 
-            if (!IrcCommands.PRIVMSG.Equals(rim.Command, StringComparison.OrdinalIgnoreCase)
-                && !IrcCommands.NOTICE.Equals(rim.Command, StringComparison.OrdinalIgnoreCase))
-                return null;
+            if (rim.ParameterCount == 0)
+                return false;
+
+            if (!IrcCommand.PRIVMSG.Equals(rim.Command, StringComparison.OrdinalIgnoreCase)
+                && !IrcCommand.NOTICE.Equals(rim.Command, StringComparison.OrdinalIgnoreCase))
+                return false;
 
             string trailer = rim.Parameters[rim.ParameterCount - 1];
 
             if (string.IsNullOrWhiteSpace(trailer))
-                return null;
+                return false;
 
             fixed (char* p = trailer)
             {
                 if (*p != '\x01')
-                    return null;
+                    return false;
 
                 int tLen = trailer.Length;
-                RawCtcpMessage rcm = new RawCtcpMessage();
+                int endDelimiter = 0;
+
+                if (*(p + tLen - 1) == '\x01')
+                    endDelimiter = 1;
+
+                rcm = new RawCtcpMessage();
 
                 for (int i = 1; i < tLen; i++)
                 {
@@ -42,10 +49,12 @@ namespace IrcGirl.Protocol.Ctcp
 
                     for (; i < tLen && *(p + i) == ' '; i++) ;
 
-                    rcm.ParameterString = new string(p, i, tLen - i);
+                    rcm.ParameterString = new string(p, i, tLen - i - endDelimiter);
+                    break;
                 }
 
-                return rcm;
+                rcm.RawIrcMessage = rim;
+                return true;
             }
         }
 
@@ -53,7 +62,7 @@ namespace IrcGirl.Protocol.Ctcp
         private static string ReadWord(char* c, ref int pos, ref int len)
         {
             int resultLen = 0;
-            for (; resultLen + pos < resultLen; resultLen++)
+            for (; resultLen + pos < len; resultLen++)
             {
                 if (*(c + pos + resultLen) == ' ') break;
             }

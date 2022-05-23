@@ -7,7 +7,7 @@ namespace IrcGirl.Protocol.IrcV3.IrcMessages.Commands
     /// <summary>
     /// <see href="https://modern.ircdocs.horse/#quit-message"/>
     /// </summary>
-    [IrcMessage(IrcCommands.PRIVMSG)]
+    [IrcMessage(IrcCommand.PRIVMSG)]
     public class PrivMsgIrcMessage : IrcMessage
     {
         /// <summary>

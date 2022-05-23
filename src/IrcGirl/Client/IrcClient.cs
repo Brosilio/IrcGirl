@@ -101,9 +101,9 @@ namespace IrcGirl.Client
             while (true)
             {
                 // wait for and read the next RawIrcMessage on the network.
-                RawIrcMessage rawMessage = await _ircStream.ReadAsync();
+                RawIrcMessage rawIrcMessage = await _ircStream.ReadAsync();
 
-                if (rawMessage == null)
+                if (rawIrcMessage == null)
                 {
                     OnDisconnected(new Events.IrcDisconnectedEventArgs());
                     break;
@@ -112,37 +112,45 @@ namespace IrcGirl.Client
                 try
                 {
                     // raise the IrcMessageReceived event first, with the raw message
-                    OnRawIrcMessageReceived(rawMessage);
+                    OnRawIrcMessageReceived(rawIrcMessage);
 
                     // if it's an error reply code, call the error reply code function
-                    if (rawMessage.TryGetReplyCode(out IrcReplyCode code) && rawMessage.IsErrorReply())
-                        OnIrcErrorReplyReceived(code, rawMessage);
+                    if (rawIrcMessage.TryGetReplyCode(out IrcReplyCode code) && rawIrcMessage.IsErrorReply())
+                        OnIrcErrorReplyReceived(code, rawIrcMessage);
 
                     // detect ctcp messsage
-                    if (_ctcpParser.TryUnbox(rawMessage, out RawCtcpMessage rawCtcpMessage)
-                        && _ctcpSinks.TryGetValue(rawCtcpMessage.Command, out var ctcpSink))
+                    if (_ctcpParser.TryUnbox(rawIrcMessage, out RawCtcpMessage rawCtcpMessage))
                     {
-                        ctcpSink(rawCtcpMessage);
+                        // call ctcp sink
+                        if (_ctcpSinks.TryGetValue(rawCtcpMessage.Command, out Action<object> ctcpSink))
+                        {
+                            CtcpMessage ctcpMessage = CtcpMessage.CreateInstance(rawCtcpMessage);
+
+                            if (ctcpMessage == null)
+                                throw new Exception("CtcpMessage sink is registered but an instance of the message wasn't created");
+
+                            ctcpSink(ctcpMessage);
+                        }
 
                         // do not continue processing as an IRC message
-                        return;
+                        continue;
                     }
 
                     // if we have an internal sink for the message, use it
-                    if (_ircSinks.TryGetValue(rawMessage.Command, out var sink))
+                    if (_ircSinks.TryGetValue(rawIrcMessage.Command, out Action<object> ircSink))
                     {
                         // convert the raw message to a fancy message of whatever type
-                        IrcMessage message = IrcMessage.CreateInstance(rawMessage);
+                        IrcMessage message = IrcMessage.CreateInstance(rawIrcMessage);
 
                         if (message == null)
                             throw new Exception("Message sink registered for type but the message wasn't creaeted");
 
-                        sink(message);
+                        ircSink(message);
                     }
                 }
                 catch (Exception ex)
                 {
-                    OnMessageLoopExceptionRaised(new Events.MessageLoopExceptionEventArgs(ex, rawMessage));
+                    OnMessageLoopExceptionRaised(new Events.MessageLoopExceptionEventArgs(ex, rawIrcMessage));
                 }
             }
         }
@@ -151,6 +159,7 @@ namespace IrcGirl.Client
         /// Queues a message to be sent by the underlying stream.
         /// </summary>
         /// <param name="message">The message to send.</param>
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
         public void Send(RawIrcMessage message)
         {
             _ircStream.QueueForSend(message);
@@ -218,7 +227,7 @@ namespace IrcGirl.Client
         /// <returns></returns>
         public async Task DisconnectAsync()
         {
-
+            throw new NotImplementedException(); // TODO: this
         }
 
         #region sinks
@@ -447,7 +456,7 @@ namespace IrcGirl.Client
         /// </summary>
         /// 
         /// <param name="msg">The ping message.</param>
-        [IrcMessageSink(IrcCommands.PING)]
+        [IrcMessageSink(IrcCommand.PING)]
         protected virtual void OnIrcPing(PingIrcMessage msg)
         {
             this.IrcPong(msg.Token);
@@ -460,7 +469,7 @@ namespace IrcGirl.Client
         /// <param name="from">The user the message is from.</param>
         /// <param name="msg">The message.</param>
         protected virtual void OnIrcPrivMsg(IrcUser from, PrivMsgIrcMessage msg) { }
-        [IrcMessageSink(IrcCommands.PRIVMSG)]
+        [IrcMessageSink(IrcCommand.PRIVMSG)]
         private void OnIrcPrivMsgInternal(PrivMsgIrcMessage msg)
         {
             OnIrcPrivMsg(new IrcUser(this, msg.Source), msg);
@@ -482,10 +491,13 @@ namespace IrcGirl.Client
         /// </summary>
         /// 
         /// <param name="msg">The CTCP PING message.</param>
-        [CtcpMessageSink(CtcpCommands.PING)]
-        protected virtual void OnCtcpPing(PingCtcpMessage msg)
+        protected virtual void OnCtcpPing(PingCtcpMessage msg) { }
+        [CtcpMessageSink(CtcpCommand.PING)]
+        private void OnCtcpPingInternal(PingCtcpMessage msg)
         {
-            this.Send(new RawCtcpMessage().AsReply());
+            IrcUser from = new IrcUser(this, msg.Source);
+            this.CtcpPong(from.NickName, msg.PingTag);
+            OnCtcpPing(msg);
         }
 
         #endregion ctcp

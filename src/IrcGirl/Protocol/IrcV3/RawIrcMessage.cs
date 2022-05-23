@@ -48,7 +48,13 @@ namespace IrcGirl.Protocol.IrcV3
 
         public RawIrcMessage()
         {
-            Parameters = new string[IrcMessageParser.MAX_PARAMS];
+            this.Parameters = new string[IrcMessageParser.MAX_PARAMS];
+        }
+
+        public RawIrcMessage(int paramCount)
+        {
+            this.Parameters = new string[paramCount];
+            this.ParameterCount = paramCount;
         }
 
         public RawIrcMessage(string command, params string[] parameters)
@@ -127,8 +133,8 @@ namespace IrcGirl.Protocol.IrcV3
             if (string.IsNullOrWhiteSpace(Command))
                 return false;
 
-            if (!IrcCommands.PRIVMSG.Equals(Command, StringComparison.OrdinalIgnoreCase)
-                && !IrcCommands.NOTICE.Equals(Command, StringComparison.OrdinalIgnoreCase))
+            if (!IrcCommand.PRIVMSG.Equals(Command, StringComparison.OrdinalIgnoreCase)
+                && !IrcCommand.NOTICE.Equals(Command, StringComparison.OrdinalIgnoreCase))
                 return false;
 
             return Parameters[ParameterCount - 1][0] == '\x01';
@@ -168,7 +174,7 @@ namespace IrcGirl.Protocol.IrcV3
             // create an instance of this irc message just to validate it.
             // if it's null then we don't know what kind of message it is.
             // this throws the invalid irc message exception if the message
-            // isn't valid.
+            // isn't valid semantically.
             IrcMessage message = IrcMessage.CreateInstance(this);
 
             StringBuilder sb = new StringBuilder();

@@ -7,7 +7,7 @@ namespace IrcGirl.Protocol.IrcV3.IrcMessages.Commands
     /// <summary>
     /// <see href="https://modern.ircdocs.horse/#pong-message"/>
     /// </summary>
-    [IrcMessage(IrcCommands.PONG)]
+    [IrcMessage(IrcCommand.PONG)]
     public class PongIrcMessage : IrcMessage
     {
         /// <summary>
@@ -34,7 +34,7 @@ namespace IrcGirl.Protocol.IrcV3.IrcMessages.Commands
 
         public PongIrcMessage(string token)
         {
-            this.RawIrcMessage = new RawIrcMessage(IrcCommands.PONG, token);
+            this.RawIrcMessage = new RawIrcMessage(IrcCommand.PONG, token);
         }
     }
 }

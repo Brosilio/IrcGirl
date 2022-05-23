@@ -4,7 +4,7 @@ using System.Text;
 
 namespace IrcGirl.Protocol.IrcV3
 {
-    public static class IrcCommands
+    public static class IrcCommand
     {
         public const string
             CAP = "CAP",

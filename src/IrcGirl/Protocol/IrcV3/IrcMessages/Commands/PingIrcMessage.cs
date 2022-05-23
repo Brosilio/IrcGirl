@@ -7,7 +7,7 @@ namespace IrcGirl.Protocol.IrcV3.IrcMessages.Commands
     /// <summary>
     /// <see href="https://modern.ircdocs.horse/#ping-message"/>
     /// </summary>
-    [IrcMessage(IrcCommands.PING)]
+    [IrcMessage(IrcCommand.PING)]
     public class PingIrcMessage : IrcMessage
     {
         /// <summary>
@@ -34,7 +34,7 @@ namespace IrcGirl.Protocol.IrcV3.IrcMessages.Commands
 
         public PingIrcMessage(string token)
         {
-            this.RawIrcMessage = new RawIrcMessage(IrcCommands.PING, token);
+            this.RawIrcMessage = new RawIrcMessage(IrcCommand.PING, token);
         }
     }
 }

@@ -4,7 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using IrcGirl.Protocol.IrcV3;
-using static IrcGirl.Protocol.IrcV3.IrcCommands;
+using static IrcGirl.Protocol.IrcV3.IrcCommand;
 
 namespace IrcGirl.Client
 {
